@@ -1,0 +1,54 @@
+#include <iostream>
+#include <opencv2/opencv.hpp>
+#include <omp.h>
+#include <chrono>
+
+using namespace cv;
+using namespace std;
+
+int main(int argc, char** argv) {
+ // Read the image file
+ Mat image = imread("sunflower.jpg"); //Can change based on the file in the Resource 
+Files
+ // Check if image is loaded successfully
+ if (image.empty()) {
+ cout << "Error: Could not open or find the image" << endl;
+ return 1;
+ }
+
+ // Apply grayscale filter in serial
+ cout << "Applying grayscale filter in serial..." << endl;
+ clock_t start_time = clock();
+ Mat gray_serial;
+ cvtColor(image, gray_serial, COLOR_BGR2GRAY);
+ clock_t end_time = clock();
+ double elapsed_time = double(end_time - start_time) / CLOCKS_PER_SEC;
+ cout << "Elapsed time in Serial Processing: " << elapsed_time << " seconds" << endl;
+ 
+// Apply grayscale filter in parallel
+ cout << "Applying grayscale filter in parallel..." << endl;
+ start_time = clock();
+ Mat gray_parallel(image.rows, image.cols, CV_8UC1);
+#pragma omp parallel for
+ for (int i = 0; i < image.rows; i++) {
+ for (int j = 0; j < image.cols; j++) {
+ Vec3b pixel = image.at<Vec3b>(i, j);
+ uchar gray_val = (pixel[0] + pixel[1] + pixel[2]) / 3;
+ gray_parallel.at<uchar>(i, j) = gray_val;
+ }
+ }
+ end_time = clock();
+ elapsed_time = double(end_time - start_time) / CLOCKS_PER_SEC;
+ cout << "Elapsed time in Parallel Processing: " << elapsed_time << " seconds" << endl;
+ 
+// Save the filtered images
+ imwrite("output_serial.jpg", gray_serial);
+ imwrite("output_parallel.jpg", gray_parallel);
+
+ // Display the images
+ imshow("Original image", image);
+ imshow("Filtered image (serial)", gray_serial);
+ imshow("Filtered image (parallel)", gray_parallel);
+ waitKey(0);
+ return 0;
+}
